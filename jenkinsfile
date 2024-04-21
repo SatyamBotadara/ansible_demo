@@ -1,0 +1,46 @@
+pipeline{
+    agent any;
+    
+    stages{
+        
+        stage("environment"){
+            steps{
+                script{
+                    def scm = git "https://github.com/SatyamBotadara/ansible_demo.git";
+                    def latestCommitHash = scm.GIT_COMMIT;
+                    
+                    def previousBuild = currentBuild.getPreviousBuild();
+                    
+                    def previousBuildCommitHash;
+
+                    // setting up the current build variables 
+                    if(params.environment == "QA"){
+                        env.QA_LAST_COMMIT = latestCommitHash;
+                        env.PROD_LAST_COMMIT = previousBuild != null ? previousBuild.getBuildVariables().get("PROD_LAST_COMMIT") : null ;    
+                        previousBuildCommitHash = previousBuild != null ? previousBuild.getBuildVariables().get("QA_LAST_COMMIT") : null ;
+                    }
+                    else if(params.environment == "PROD"){
+                        env.QA_LAST_COMMIT = previousBuild != null ? previousBuild.getBuildVariables().get("QA_LAST_COMMIT") : null;
+                        env.PROD_LAST_COMMIT = latestCommitHash;
+                        previousBuildCommitHash = previousBuild != null ? previousBuild.getBuildVariables().get("PROD_LAST_COMMIT") : null ;
+                    }
+                                    
+                    // find if there need to be deploy code or not base on the previous commit and current commit hash
+
+                    if(previousBuildCommitHash == null || !previousBuildCommitHash.equals(latestCommitHash)){
+                        //  there need to be execute the pipeline
+                        echo " need to build "
+                    }
+                    else{
+                        //  skip the pipeline
+                        echo "no need to build"
+                    }
+                
+            
+                }
+            }
+        }
+        
+    }
+    
+}
